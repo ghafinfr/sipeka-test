@@ -24,16 +24,17 @@
       <div class="mb-1 text-sm font-medium text-slate-700">Penilaian</div>
       <div class="star-rating mb-1" role="radiogroup" aria-label="Penilaian 1 sampai 5 bintang">
         <?php for ($i = 1; $i <= 5; $i++): ?>
-        <button type="button" class="star-btn" role="radio" aria-checked="false" aria-label="<?= $i ?> bintang">
-          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        </button>
+          <button type="button" class="star-btn" role="radio" aria-checked="false" aria-label="<?= $i ?> bintang">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          </button>
         <?php endfor; ?>
       </div>
       <p id="ratingLabel" class="mb-4 text-xs font-medium text-amber-600">Pilih bintang</p>
 
       <label for="ulasanIsi" class="mb-1 block text-sm font-medium text-slate-700">Ulasan</label>
-      <textarea id="ulasanIsi" rows="5" maxlength="500"
-        placeholder="Ceritakan pengalaman Anda (minimal 10 karakter)..."
+      <textarea id="ulasanIsi" rows="5" maxlength="500" placeholder="Ceritakan pengalaman Anda (minimal 10 karakter)..."
         class="w-full resize-y rounded-lg border border-slate-200 p-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-blue-200"></textarea>
       <div class="mt-1 text-right text-xs text-slate-400"><span id="ulasanHitung">0/500</span></div>
 

@@ -102,16 +102,6 @@
         </div>
       </header>
 
-      <?php
-      $dash = [
-        'judul' => 'Dashboard Sekretariat Jurusan (Sekjur)',
-        'badge' => 'Fasilitas Kampus',
-        'deskripsi' => 'Kelola disposisi pengaduan fasilitas kelas, lab komputer, proyektor, AC, dan sarana prasarana Gedung Sipil &amp; JTI.',
-        'placeholder' => 'Cari laporan sarpras berdasarkan nomor tiket, judul, atau nama mahasiswa...',
-        'kolom' => 'Judul Laporan Sarpras',
-      ];
-      include __DIR__ . '/../../../includes/unit-dashboard-content.php';
-      ?>
     </main>
   </div>
 
