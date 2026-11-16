@@ -1,0 +1,258 @@
+/* ==========================================================================
+   interaktif.css — animasi & komponen interaktif (bel notifikasi, bintang ulasan,
+   skeleton, ripple, baris tabel). Memakai variabel dari base.css / themes.css.
+   Dimuat terakhir oleh includes/styles.php. Semua animasi mati otomatis jika
+   pengguna memilih "kurangi gerakan" di perangkatnya.
+   ========================================================================== */
+
+@keyframes sipeka-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sipeka-shimmer {
+  100% { transform: translateX(100%); }
+}
+@keyframes sipeka-ping {
+  0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+  100% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+@keyframes sipeka-ring {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-5deg); }
+}
+@keyframes sipeka-ripple {
+  to { transform: scale(3.2); opacity: 0; }
+}
+
+/* Muncul bertahap (kartu & baris tabel). Atur urutan lewat style="--i:n" */
+.anim-fade-up,
+.row-anim {
+  animation: sipeka-fade-up 0.35s ease both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* Titik berkedip pada laporan yang perlu perhatian (menunggu > 3 hari) */
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  vertical-align: middle;
+  animation: sipeka-ping 1.4s ease-out infinite;
+}
+
+/* Skeleton saat data dimuat */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  background: #e2e8f0;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: sipeka-shimmer 1.2s infinite;
+}
+
+/* Ripple pada tombol */
+.btn-primary,
+.btn-action,
+.btn-detail,
+.btn-inline {
+  position: relative;
+  overflow: hidden;
+}
+.ripple-wave {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+  animation: sipeka-ripple 0.55s ease-out forwards;
+}
+
+/* Kartu ringkasan yang bisa diklik */
+.stat-tile {
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.stat-tile:hover { transform: translateY(-2px); }
+.stat-tile:active { transform: translateY(0) scale(0.98); }
+
+/* ---------- Bel notifikasi ---------- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.notif-wrap { position: relative; }
+.notif-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.notif-btn:hover,
+.notif-btn[aria-expanded="true"] { background: #f1f5f9; color: var(--primary-navy); }
+.notif-btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.mobile-topbar .notif-btn { color: #ffffff; }
+.mobile-topbar .notif-btn:hover,
+.mobile-topbar .notif-btn[aria-expanded="true"] { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+.notif-btn.is-ringing svg { animation: sipeka-ring 0.9s ease; transform-origin: 50% 10%; }
+
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 1px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid #ffffff;
+  box-sizing: content-box;
+}
+.mobile-topbar .notif-badge { border-color: var(--primary-navy); }
+.topbar--unit .notif-badge { border-color: #1e293b; }
+.notif-badge[hidden] { display: none; }
+
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  background: #ffffff;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 1200;
+  overflow: hidden;
+  transform-origin: top right;
+  animation: sipeka-fade-up 0.18s ease both;
+}
+.notif-panel[hidden] { display: none; }
+.notif-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+.notif-panel__head h3 { font-size: 0.95rem; font-weight: 700; color: var(--primary-navy); }
+.notif-readall {
+  border: 0;
+  background: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  cursor: pointer;
+}
+.notif-readall:hover { text-decoration: underline; }
+.notif-readall:disabled { color: var(--text-muted); cursor: default; text-decoration: none; }
+.notif-list { max-height: 380px; overflow-y: auto; list-style: none; }
+.notif-item {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.notif-item:hover { background: #f8fafc; }
+.notif-item--unread { background: #eff6ff; }
+.notif-item--unread:hover { background: #dbeafe; }
+.notif-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: transparent;
+}
+.notif-item--unread .notif-dot { background: var(--accent-blue); }
+.notif-item__title { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+.notif-item__text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.notif-item__time { margin-top: 2px; font-size: 0.7rem; color: #94a3b8; }
+.notif-empty { padding: 2rem 1rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+
+@media (max-width: 900px) {
+  /* topbar mobile: panel lebar penuh di bawah topbar */
+  .mobile-topbar .notif-wrap { position: static; }
+  .mobile-topbar .notif-panel {
+    position: fixed;
+    top: 58px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  .topbar-actions { display: flex; align-items: center; gap: 4px; }
+}
+
+/* ---------- Bintang rating (halaman ulasan) ---------- */
+.star-rating { display: inline-flex; gap: 4px; }
+.star-btn {
+  border: 0;
+  background: none;
+  padding: 2px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+.star-btn svg { display: block; width: 34px; height: 34px; fill: currentColor; }
+.star-btn:hover { transform: scale(1.15); }
+.star-btn.is-on { color: #f59e0b; }
+.star-btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; border-radius: 6px; }
+
+/* Bintang kecil (tampilan saja) */
+.stars-static { display: inline-flex; gap: 2px; color: #cbd5e1; }
+.stars-static svg { width: 16px; height: 16px; fill: currentColor; }
+.stars-static .on { color: #f59e0b; }
+.review-item__stars { margin-bottom: 0.1rem; }
+.review-item { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.review-item:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up, .row-anim, .pulse-dot, .skeleton::after, .notif-panel,
+  .notif-btn.is-ringing svg, .ripple-wave { animation: none !important; }
+  .stat-tile, .star-btn, .review-item { transition: none; }
+}
