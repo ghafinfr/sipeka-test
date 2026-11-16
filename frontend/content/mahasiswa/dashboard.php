@@ -79,7 +79,8 @@
             <a href="ulasan.php">
               <svg class="icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
                 fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                <path
+                  d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               <span>Ulasan</span>
             </a>
@@ -130,12 +131,15 @@
         <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 class="text-2xl font-bold text-navy">Dashboard Mahasiswa</h2>
-            <p class="text-sm text-slate-500">Pantau seluruh status laporan pengaduan Anda di Jurusan Teknologi Informasi</p>
+            <p class="text-sm text-slate-500">Pantau seluruh status laporan pengaduan Anda di Jurusan Teknologi
+              Informasi</p>
           </div>
           <a href="kategori.php"
             class="btn-primary btn-inline inline-flex items-center justify-center gap-2 no-underline">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"
-              stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
             Buat Pengaduan
           </a>
         </div>
@@ -180,7 +184,8 @@
         <a href="ulasan.php"
           class="anim-fade-up mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 no-underline transition hover:shadow-md"
           style="--i:4">
-          <span class="text-sm text-amber-900"><strong>Bagaimana pengalaman Anda?</strong> Beri ulasan agar layanan SIPEKA makin baik.</span>
+          <span class="text-sm text-amber-900"><strong>Bagaimana pengalaman Anda?</strong> Beri ulasan agar layanan
+            SIPEKA makin baik.</span>
           <span class="shrink-0 text-sm font-semibold text-amber-700">Tulis ulasan &rarr;</span>
         </a>
 
