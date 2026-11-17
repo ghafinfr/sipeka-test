@@ -93,10 +93,10 @@
         </section>
 
         <!-- Ulasan -->
-        <section class="landing-section " id="ulasan">
+        <section class="landing-section landing-section--alt" id="ulasan">
             <h2>Ulasan</h2>
             <p class="landing-sub" id="reviewSummary"></p>
-            <div id="reviewStats"></div>
+            <div id="reviewFilter"></div>
             <div class="review-grid" id="reviewGrid">
                 <p class="review-empty">Memuat ulasan...</p>
             </div>

@@ -3,83 +3,53 @@
  * Halaman : content/mahasiswa/ulasan.php, content/unit/{unit}/ulasan.php
  *           (isi halaman ada di includes/ulasan-content.php)
  * Fungsi  : initUlasanPage()
- * Data    : GET/POST ulasan/saya.php (ulasan sendiri), GET ulasan/list.php (SEMUA ulasan + balasan),
+ * Data    : GET ulasan/list.php (SEMUA ulasan + balasan, dengan filter waktu),
+ *           POST ulasan/saya.php (tulis / hapus ulasan sendiri),
  *           POST ulasan/balas.php (balas / hapus balasan sendiri)
- * Satu akun = satu ulasan (boleh diedit/dihapus); balasan tidak dibatasi jumlahnya.
- * Memakai bintangStatis() & chipPeran() dari pages/landing-ulasan.js.
+ * Ulasan berupa komentar (tanpa bintang); satu akun boleh menulis banyak ulasan dan banyak balasan.
+ * Memakai chipPeran() & buatFilterUlasan() dari pages/landing-ulasan.js.
  */
 
 async function initUlasanPage() {
     const form = document.getElementById('ulasanForm');
     if (!form) return;
 
-    const bintang = Array.from(form.querySelectorAll('.star-btn'));
     const isi = document.getElementById('ulasanIsi');
     const hitung = document.getElementById('ulasanHitung');
-    const labelRating = document.getElementById('ratingLabel');
     const btnKirim = document.getElementById('btnKirimUlasan');
-    const btnHapus = document.getElementById('btnHapusUlasan');
-    const status = document.getElementById('ulasanStatus');
     const daftar = document.getElementById('ulasanDaftar');
     const ringkasan = document.getElementById('ulasanRingkasan');
     const btnMore = document.getElementById('ulasanMore');
+    const wadahFilter = document.getElementById('ulasanFilter');
 
-    const LABEL = ['Pilih bintang', 'Sangat buruk', 'Kurang baik', 'Cukup', 'Baik', 'Sangat baik'];
     const HALAMAN = 10;
-    let rating = 0;
-    let sudahAda = false;
-    let dimuat = 0;          // jumlah ulasan yang sedang tampil
-    let terbuka = new Set(); // id ulasan yang kotak balasnya sedang dibuka
+    let dimuat = 0;           // jumlah ulasan yang sedang tampil
+    let permintaan = 0;       // abaikan jawaban lama bila filter berubah saat memuat
+    const terbuka = new Set(); // id ulasan yang kotak balasnya sedang dibuka
 
-    // ================= formulir ulasan sendiri =================
-    function gambarBintang(nilai) {
-        bintang.forEach((b, i) => {
-            b.classList.toggle('is-on', i < nilai);
-            b.setAttribute('aria-checked', String(i + 1 === rating));
-        });
-        labelRating.textContent = LABEL[nilai] || LABEL[0];
-    }
+    const filter = buatFilterUlasan(wadahFilter, () => muatDaftar());
+
+    // ================= tulis ulasan =================
     function periksa() {
-        const panjang = isi.value.trim().length;
         hitung.textContent = `${isi.value.length}/500`;
-        hitung.classList.toggle('text-red-500', panjang > 0 && panjang < 10);
-        btnKirim.disabled = rating < 1 || panjang < 10;
+        btnKirim.disabled = isi.value.trim().length < 3;
     }
-    bintang.forEach((b, i) => {
-        b.addEventListener('mouseenter', () => gambarBintang(i + 1));
-        b.addEventListener('focus', () => gambarBintang(i + 1));
-        b.addEventListener('click', () => { rating = i + 1; gambarBintang(rating); periksa(); });
-        b.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-                e.preventDefault();
-                const baru = Math.min(5, Math.max(1, (rating || i + 1) + (e.key === 'ArrowRight' ? 1 : -1)));
-                rating = baru; gambarBintang(rating); bintang[baru - 1].focus(); periksa();
-            }
-        });
-    });
-    form.querySelector('.star-rating').addEventListener('mouseleave', () => gambarBintang(rating));
     isi.addEventListener('input', periksa);
 
-    async function muatSaya() {
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        btnKirim.disabled = true;
         try {
-            const { ulasan } = await window.sipekaAPI.getUlasanSaya();
-            sudahAda = !!ulasan;
-            if (ulasan) {
-                rating = ulasan.rating;
-                isi.value = ulasan.isi;
-                status.textContent = 'Anda sudah menulis ulasan. Ubah lalu simpan untuk memperbarui.';
-            } else {
-                status.textContent = 'Anda belum menulis ulasan.';
-            }
+            const hasil = await window.sipekaAPI.tulisUlasan(isi.value.trim());
+            showToast(hasil.message || 'Ulasan terkirim.', 'success');
+            isi.value = '';
+            filter.reset(false);               // pastikan ulasan baru terlihat (tidak tersaring)
+            await muatDaftar();
         } catch (err) {
-            status.textContent = '';
-            showToast(err.message || 'Gagal memuat ulasan Anda.', 'error');
+            showToast(err.message || 'Gagal mengirim ulasan.', 'error');
         }
-        btnHapus.classList.toggle('hidden', !sudahAda);
-        btnKirim.textContent = sudahAda ? 'Perbarui Ulasan' : 'Kirim Ulasan';
-        gambarBintang(rating);
         periksa();
-    }
+    });
 
     // ================= daftar semua ulasan + balasan =================
     function balasanHtml(b) {
@@ -98,7 +68,7 @@ async function initUlasanPage() {
         const inisial = (u.nama || '?').trim().charAt(0).toUpperCase();
         const buka = terbuka.has(u.id_ulasan);
         return `
-        <article class="review-item anim-fade-up" id="ulasan-${u.id_ulasan}" data-id="${u.id_ulasan}" style="--i:${Math.min(idx, 8)}">
+        <article class="review-item anim-fade-up" id="ulasan-${u.id_ulasan}" style="--i:${Math.min(idx, 8)}">
             <div class="review-item__head">
                 <div class="review-item__avatar">${escapeHtml(inisial)}</div>
                 <div>
@@ -106,14 +76,16 @@ async function initUlasanPage() {
                     <div class="review-item__role">${chipPeran(u.peran)}</div>
                 </div>
             </div>
-            <div class="review-item__stars">${bintangStatis(u.rating)}</div>
             <p class="review-item__text">${escapeHtml(u.isi)}</p>
             ${u.balasan.length ? `<div class="review-replies">${u.balasan.map(balasanHtml).join('')}</div>` : ''}
-            <div class="mt-2 flex items-center justify-between">
+            <div class="mt-2 flex items-center justify-between gap-3">
                 <span class="review-item__date">${escapeHtml(relativeTime(u.waktu))}</span>
-                <button type="button" class="text-xs font-semibold text-brand hover:underline" data-toggle-balas="${u.id_ulasan}">
-                    Balas${u.jumlah_balasan ? ` (${u.jumlah_balasan})` : ''}
-                </button>
+                <span class="flex items-center gap-3">
+                    ${u.milik_saya ? `<button type="button" class="review-item__hapus" data-hapus-ulasan="${u.id_ulasan}">Hapus</button>` : ''}
+                    <button type="button" class="text-xs font-semibold text-brand hover:underline" data-toggle-balas="${u.id_ulasan}">
+                        Balas${u.jumlah_balasan ? ` (${u.jumlah_balasan})` : ''}
+                    </button>
+                </span>
             </div>
             <div class="mt-2 ${buka ? '' : 'hidden'}" data-kotak-balas="${u.id_ulasan}">
                 <textarea rows="2" maxlength="300" placeholder="Tulis balasan (2-300 karakter)..."
@@ -125,22 +97,28 @@ async function initUlasanPage() {
         </article>`;
     }
 
-    // Muat ulang dari awal sebanyak yang sudah tampil (supaya balasan baru langsung terlihat)
+    // tambah=false: muat ulang dari awal sebanyak yang sudah tampil (balasan baru langsung terlihat)
     async function muatDaftar({ tambah = false } = {}) {
+        const nomor = ++permintaan;
         const awal = tambah ? dimuat : 0;
         const jumlah = tambah ? HALAMAN : Math.max(dimuat, HALAMAN);
         let data;
         try {
-            data = await window.sipekaAPI.getUlasanPublik(jumlah, awal);
+            data = await window.sipekaAPI.getUlasanPublik(jumlah, awal, filter.ambil());
         } catch (err) {
+            if (nomor !== permintaan) return;
             if (!tambah) daftar.innerHTML = '<p class="review-empty">Daftar ulasan belum dapat dimuat.</p>';
             else showToast(err.message || 'Gagal memuat ulasan.', 'error');
             return;
         }
-        const { total, rata_rata } = data.ringkasan;
-        ringkasan.textContent = total ? `Rata-rata ${rata_rata.toFixed(1).replace('.', ',')} dari 5 · ${total} ulasan` : '';
-        if (total === 0) {
-            daftar.innerHTML = '<p class="review-empty">Belum ada ulasan. Jadilah yang pertama!</p>';
+        if (nomor !== permintaan) return;
+
+        const r = data.ringkasan;
+        ringkasan.textContent = r.total_semua ? teksJumlahUlasan(r, filter.aktif()) : '';
+        if (r.total === 0) {
+            daftar.innerHTML = r.total_semua === 0
+                ? '<p class="review-empty">Belum ada ulasan. Jadilah yang pertama!</p>'
+                : '<p class="review-empty">Tidak ada ulasan untuk filter ini.</p>';
             btnMore.hidden = true;
             dimuat = 0;
             return;
@@ -178,14 +156,26 @@ async function initUlasanPage() {
             }
             return;
         }
-        const hapus = e.target.closest('[data-hapus-balasan]');
-        if (hapus) {
+        const hapusBalasan = e.target.closest('[data-hapus-balasan]');
+        if (hapusBalasan) {
             if (!window.confirm('Hapus balasan Anda?')) return;
             try {
-                await window.sipekaAPI.hapusBalasan(Number(hapus.dataset.hapusBalasan));
+                await window.sipekaAPI.hapusBalasan(Number(hapusBalasan.dataset.hapusBalasan));
                 await muatDaftar();
             } catch (err) {
                 showToast(err.message || 'Gagal menghapus balasan.', 'error');
+            }
+            return;
+        }
+        const hapusUlasan = e.target.closest('[data-hapus-ulasan]');
+        if (hapusUlasan) {
+            if (!window.confirm('Hapus ulasan ini? Balasan di bawahnya ikut terhapus.')) return;
+            try {
+                await window.sipekaAPI.hapusUlasan(Number(hapusUlasan.dataset.hapusUlasan));
+                showToast('Ulasan dihapus.', 'success');
+                await muatDaftar();
+            } catch (err) {
+                showToast(err.message || 'Gagal menghapus ulasan.', 'error');
             }
         }
     });
@@ -201,30 +191,6 @@ async function initUlasanPage() {
         if (e.detail.items.some((n) => n.jenis === 'balasan_ulasan')) muatDaftar();
     });
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        btnKirim.disabled = true;
-        try {
-            const hasil = await window.sipekaAPI.simpanUlasanSaya(rating, isi.value.trim());
-            showToast(hasil.message || 'Ulasan tersimpan.', 'success');
-            await Promise.all([muatSaya(), muatDaftar()]);
-        } catch (err) {
-            showToast(err.message || 'Gagal menyimpan ulasan.', 'error');
-            periksa();
-        }
-    });
-
-    btnHapus.addEventListener('click', async () => {
-        if (!window.confirm('Hapus ulasan Anda? Balasan pada ulasan ini ikut terhapus.')) return;
-        try {
-            await window.sipekaAPI.hapusUlasanSaya();
-            rating = 0; isi.value = '';
-            showToast('Ulasan Anda dihapus.', 'success');
-            await Promise.all([muatSaya(), muatDaftar()]);
-        } catch (err) {
-            showToast(err.message || 'Gagal menghapus ulasan.', 'error');
-        }
-    });
-
-    await Promise.all([muatSaya(), muatDaftar()]);
+    periksa();
+    await muatDaftar();
 }

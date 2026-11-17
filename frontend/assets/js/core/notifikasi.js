@@ -15,12 +15,11 @@
 Object.assign(window.sipekaAPI, {
     getNotifikasi: (limit = 20) => apiGet('notifikasi/list.php', { limit }),
     bacaNotifikasi: (payload) => apiPostJson('notifikasi/baca.php', payload),
-    getUlasanPublik: (limit = 9, offset = 0) => apiGet('ulasan/list.php', { limit, offset }),   // juga dipakai halaman Ulasan (login -> milik_saya)
+    getUlasanPublik: (limit = 10, offset = 0, filter = {}) => apiGet('ulasan/list.php', { limit, offset, ...filter }),   // + filter waktu; juga dipakai halaman Ulasan (login -> milik_saya)
+    tulisUlasan: (isi) => apiPostJson('ulasan/saya.php', { isi }),
+    hapusUlasan: (id_ulasan) => apiPostJson('ulasan/saya.php', { hapus: true, id_ulasan }),
     balasUlasan: (id_ulasan, isi) => apiPostJson('ulasan/balas.php', { id_ulasan, isi }),
     hapusBalasan: (id_balasan) => apiPostJson('ulasan/balas.php', { hapus: true, id_balasan }),
-    getUlasanSaya: () => apiGet('ulasan/saya.php'),
-    simpanUlasanSaya: (rating, isi) => apiPostJson('ulasan/saya.php', { rating, isi }),
-    hapusUlasanSaya: () => apiPostJson('ulasan/saya.php', { hapus: true }),
 });
 
 const NOTIF_INTERVAL_MS = 30000;
