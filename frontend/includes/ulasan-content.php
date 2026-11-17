@@ -3,6 +3,8 @@
  * includes/ulasan-content.php
  * ISI halaman Ulasan (Tailwind), dipakai mahasiswa dan semua unit.
  * Dipanggil dari content/mahasiswa/ulasan.php dan content/unit/{unit}/ulasan.php.
+ * Kiri : formulir ulasan milik sendiri.
+ * Kanan: SEMUA ulasan + balasan; mahasiswa dan unit bisa saling membalas.
  * Logikanya ada di assets/js/pages/ulasan.js (ID elemen di bawah dipakai file itu).
  */
 ?>
@@ -10,14 +12,14 @@
   <div class="page-header-row">
     <div class="page-title">
       <h2>Ulasan</h2>
-      <p>Bagikan pengalaman Anda memakai SIPEKA. Ulasan tampil di halaman depan.</p>
+      <p>Bagikan pengalaman Anda memakai SIPEKA, dan balas ulasan mahasiswa maupun unit lain.</p>
     </div>
   </div>
 
   <div class="grid gap-6 lg:grid-cols-5">
-    <!-- Formulir -->
+    <!-- Formulir ulasan sendiri -->
     <form id="ulasanForm" novalidate
-      class="anim-fade-up rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+      class="anim-fade-up self-start rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-4 lg:col-span-2">
       <h3 class="mb-1 text-base font-semibold text-navy">Ulasan Anda</h3>
       <p id="ulasanStatus" class="mb-4 text-xs text-slate-500">Memuat...</p>
 
@@ -46,14 +48,19 @@
       </div>
     </form>
 
-    <!-- Ulasan terbaru -->
+    <!-- Semua ulasan + balasan -->
     <section class="lg:col-span-3">
       <div class="mb-3 flex items-baseline justify-between">
-        <h3 class="text-base font-semibold text-navy">Ulasan Terbaru</h3>
+        <h3 class="text-base font-semibold text-navy">Semua Ulasan</h3>
         <span id="ulasanRingkasan" class="text-xs text-slate-500"></span>
       </div>
-      <div id="ulasanDaftar" class="grid gap-4 sm:grid-cols-2">
+      <div id="ulasanDaftar" class="grid gap-4">
         <p class="review-empty">Memuat ulasan...</p>
+      </div>
+      <div class="mt-4 text-center">
+        <button type="button" id="ulasanMore" hidden
+          class="btn-detail rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:text-brand">Muat
+          lebih banyak</button>
       </div>
     </section>
   </div>

@@ -93,12 +93,18 @@
         </section>
 
         <!-- Ulasan -->
-        <section class="landing-section landing-section--alt" id="ulasan">
+        <section class="landing-section " id="ulasan">
             <h2>Ulasan</h2>
             <p class="landing-sub" id="reviewSummary"></p>
+            <div id="reviewStats"></div>
             <div class="review-grid" id="reviewGrid">
                 <p class="review-empty">Memuat ulasan...</p>
             </div>
+            <div class="review-more">
+                <button type="button" class="landing-btn landing-btn--small landing-btn--ghost" id="reviewMore" hidden>Tampilkan lebih banyak</button>
+            </div>
+            <!-- Halaman depan hanya menampilkan hasil. Menulis ulasan/membalas dilakukan setelah masuk. -->
+            <p class="review-cta">Ingin menulis ulasan atau membalas? <a href="content/auth/login.php" data-auth="login">Masuk</a> lalu buka menu <strong>Ulasan</strong>.</p>
         </section>
     </main>
 

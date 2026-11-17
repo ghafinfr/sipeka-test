@@ -15,7 +15,9 @@
 Object.assign(window.sipekaAPI, {
     getNotifikasi: (limit = 20) => apiGet('notifikasi/list.php', { limit }),
     bacaNotifikasi: (payload) => apiPostJson('notifikasi/baca.php', payload),
-    getUlasanPublik: (limit = 9, offset = 0) => apiGet('ulasan/list.php', { limit, offset }),
+    getUlasanPublik: (limit = 9, offset = 0) => apiGet('ulasan/list.php', { limit, offset }),   // juga dipakai halaman Ulasan (login -> milik_saya)
+    balasUlasan: (id_ulasan, isi) => apiPostJson('ulasan/balas.php', { id_ulasan, isi }),
+    hapusBalasan: (id_balasan) => apiPostJson('ulasan/balas.php', { hapus: true, id_balasan }),
     getUlasanSaya: () => apiGet('ulasan/saya.php'),
     simpanUlasanSaya: (rating, isi) => apiPostJson('ulasan/saya.php', { rating, isi }),
     hapusUlasanSaya: () => apiPostJson('ulasan/saya.php', { hapus: true }),
@@ -26,6 +28,7 @@ const NOTIF_IKON_BEL = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="
 
 // Tujuan saat notifikasi diklik. Semua halaman tujuan berada di folder yang sama dengan halaman sekarang.
 function tujuanNotifikasi(n) {
+    if (n.jenis === 'balasan_ulasan') return 'ulasan.php';   // halaman Ulasan ada di folder yang sama
     if (!n.no_tiket) return null;
     const t = encodeURIComponent(n.no_tiket);
     if (window.location.pathname.includes('/content/mahasiswa/')) return `riwayat.php?tiket=${t}`;

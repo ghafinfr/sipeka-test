@@ -13,8 +13,8 @@
 // Hitung alamat (URL) folder CSS dari posisi file ini terhadap document root,
 // sehingga tidak bergantung pada kedalaman folder halaman atau nama virtual host.
 $docRoot = rtrim(str_replace('\\', '/', realpath($_SERVER['DOCUMENT_ROOT'])), '/');
-$cssDir  = str_replace('\\', '/', realpath(__DIR__ . '/../assets/css'));
-$cssUrl  = substr($cssDir, strlen($docRoot));               // contoh: /frontend/assets/css
+$cssDir = str_replace('\\', '/', realpath(__DIR__ . '/../assets/css'));
+$cssUrl = substr($cssDir, strlen($docRoot));               // contoh: /frontend/assets/css
 
 $files = [
     'base.css',       // variabel, reset, body
@@ -32,7 +32,7 @@ $files = [
 ?>
 <?php foreach ($files as $f):
     $path = __DIR__ . '/../assets/css/' . $f;
-    $ver  = is_file($path) ? filemtime($path) : time(); // ?v= agar browser selalu memuat versi terbaru
-?>
-<link rel="stylesheet" href="<?= $cssUrl . '/' . $f . '?v=' . $ver ?>">
+    $ver = is_file($path) ? filemtime($path) : time(); // ?v= agar browser selalu memuat versi terbaru
+    ?>
+    <link rel="stylesheet" href="<?= $cssUrl . '/' . $f . '?v=' . $ver ?>">
 <?php endforeach; ?>
