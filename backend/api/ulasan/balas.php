@@ -1,5 +1,5 @@
 <?php
-// Balasan pada ulasan. Mahasiswa DAN petugas unit boleh membalas ulasan siapa pun.
+// Balasan pada ulasan MAHASISWA. Petugas unit dan mahasiswa boleh membalas.
 //
 // POST /backend/api/ulasan/balas.php  Body JSON: { "id_ulasan": 3, "isi": "2-300 karakter" }
 //      -> 201 { "message", "id_balasan" }   (pemilik ulasan & peserta lain mendapat notifikasi dari trigger)
@@ -41,7 +41,11 @@ if (panjang_teks($isi) < 2 || panjang_teks($isi) > 300) {
     json_out(['message' => 'Balasan harus 2-300 karakter'], 400);
 }
 
-$st = $pdo->prepare('SELECT 1 FROM ulasan WHERE id_ulasan = :id AND tampil');
+// hanya ulasan yang ditulis mahasiswa dan masih tampil
+$st = $pdo->prepare(
+    "SELECT 1 FROM ulasan ul JOIN users u ON u.id_user = ul.id_user
+      WHERE ul.id_ulasan = :id AND ul.tampil AND u.role::text = 'mahasiswa'"
+);
 $st->execute([':id' => $idUlasan]);
 if (!$st->fetchColumn()) {
     json_out(['message' => 'Ulasan tidak ditemukan'], 404);

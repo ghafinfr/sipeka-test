@@ -1,5 +1,6 @@
 /**
  * Halaman depan - bagian Ulasan (HANYA MENAMPILKAN HASIL; tidak ada formulir)
+ * Isi     : ulasan MAHASISWA + balasan UNIT saja (unit tidak menulis ulasan)
  * Halaman : landing-page.php (#reviewFilter, #reviewSummary, #reviewGrid, #reviewMore)
  * Fungsi  : initLandingUlasan()
  * Data    : GET backend/api/ulasan/list.php (publik, tanpa login) + filter waktu
@@ -17,8 +18,8 @@ function chipPeran(peran) {
  * Filter ulasan. Dipakai halaman depan dan halaman Ulasan (tampilan sama).
  *   wadah    : elemen kosong tempat filter digambar
  *   onChange : dipanggil setiap filter berubah
- * Mengembalikan { ambil(), aktif(), reset(picu = true) }.
- * ambil() menghasilkan parameter siap kirim ke ulasan/list.php: {mode, peran, tanggal|bulan|tahun|dari+sampai, q}
+ * Mengembalikan { ambil(), aktif(), reset(picu = true), isiKategori(daftar) }.
+ * ambil() menghasilkan parameter siap kirim ke ulasan/list.php: {mode, kategori, tanggal|bulan|tahun|dari+sampai, q}
  */
 function buatFilterUlasan(wadah, onChange, { tengah = false } = {}) {
     const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -51,12 +52,8 @@ function buatFilterUlasan(wadah, onChange, { tengah = false } = {}) {
                 <input type="date" data-f="dari" value="${hariIni}" max="${hariIni}"></div>
             <div class="review-filter__field" data-m="rentang" hidden><label>Sampai</label>
                 <input type="date" data-f="sampai" value="${hariIni}" max="${hariIni}"></div>
-            <div class="review-filter__field"><label>Penulis</label>
-                <select data-f="peran">
-                    <option value="semua">Semua</option>
-                    <option value="mahasiswa">Mahasiswa</option>
-                    <option value="unit">Petugas Unit</option>
-                </select></div>
+            <div class="review-filter__field"><label>Kategori</label>
+                <select data-f="kategori"><option value="semua">Semua kategori</option></select></div>
             <div class="review-filter__field review-filter__cari"><label>Cari</label>
                 <input type="search" data-f="q" placeholder="Kata kunci..." maxlength="60"></div>
             <button type="button" class="review-filter__reset">Atur ulang</button>
@@ -73,7 +70,8 @@ function buatFilterUlasan(wadah, onChange, { tengah = false } = {}) {
 
     function ambil() {
         const mode = f('mode').value;
-        const hasil = { mode, peran: f('peran').value };
+        const hasil = { mode };
+        if (f('kategori').value !== 'semua') hasil.kategori = f('kategori').value;
         if (mode === 'harian') hasil.tanggal = f('tanggal').value || hariIni;
         if (mode === 'bulanan') hasil.bulan = `${f('tahun').value}-${f('bulan').value}`;
         if (mode === 'tahunan') hasil.tahun = f('tahun').value;
@@ -84,7 +82,7 @@ function buatFilterUlasan(wadah, onChange, { tengah = false } = {}) {
     }
 
     function aktif() {
-        return f('mode').value !== 'semua' || f('peran').value !== 'semua' || f('q').value.trim() !== '';
+        return f('mode').value !== 'semua' || f('kategori').value !== 'semua' || f('q').value.trim() !== '';
     }
 
     let tunda = null;
@@ -96,7 +94,7 @@ function buatFilterUlasan(wadah, onChange, { tengah = false } = {}) {
         tunda = setTimeout(onChange, 350);
     });
     function reset(picu = true) {
-        f('mode').value = 'semua'; f('peran').value = 'semua'; f('q').value = '';
+        f('mode').value = 'semua'; f('kategori').value = 'semua'; f('q').value = '';
         f('tanggal').value = hariIni; f('dari').value = hariIni; f('sampai').value = hariIni;
         f('bulan').value = bulanIni; f('tahun').value = String(tahunIni);
         tampilkanKolom();
@@ -104,8 +102,25 @@ function buatFilterUlasan(wadah, onChange, { tengah = false } = {}) {
     }
     wadah.querySelector('.review-filter__reset').addEventListener('click', () => reset(true));
 
+    // Pilihan kategori datang dari server (ulasan/list.php -> data.kategori); pilihan yang sedang aktif dipertahankan.
+    function isiKategori(daftar) {
+        const sel = f('kategori');
+        const dipilih = sel.value;
+        sel.innerHTML = '<option value="semua">Semua kategori</option>' +
+            (daftar || []).map((k) => `<option value="${k.id_kategori}">${escapeHtml(k.nama_kategori)}</option>`).join('');
+        sel.value = [...sel.options].some((o) => o.value === dipilih) ? dipilih : 'semua';
+    }
+
     tampilkanKolom();
-    return { ambil, aktif, reset };
+    return { ambil, aktif, reset, isiKategori };
+}
+
+// Konteks penanganan yang diulas: kategori + unit (tiket hanya ada untuk pemilik ulasan)
+function infoPenangananHtml(lap) {
+    if (!lap) return '';
+    const bagian = [lap.no_tiket ? `<strong>${escapeHtml(lap.no_tiket)}</strong>` : '', escapeHtml(lap.kategori || ''), lap.unit ? `ditangani ${escapeHtml(lap.unit)}` : '']
+        .filter(Boolean).join(' · ');
+    return `<div class="review-item__laporan"><span aria-hidden="true">🛠</span> Penanganan: ${bagian}</div>`;
 }
 
 // Teks jumlah hasil: "12 ulasan" atau "3 dari 12 ulasan" saat filter aktif
@@ -113,7 +128,8 @@ function teksJumlahUlasan(ringkasan, filterAktif) {
     return filterAktif ? `${ringkasan.total} dari ${ringkasan.total_semua} ulasan` : `${ringkasan.total} ulasan`;
 }
 
-// Kartu ulasan untuk halaman depan (hanya baca). Menampilkan maks. 2 balasan pertama.
+// Kartu ulasan mahasiswa untuk halaman depan (hanya baca). Balasan yang datang dari API hanya balasan unit;
+// maks. 2 balasan pertama ditampilkan.
 function kartuUlasanHtml(u, idx = 0) {
     const inisial = (u.nama || '?').trim().charAt(0).toUpperCase();
     const balasan = u.balasan || [];
@@ -132,6 +148,7 @@ function kartuUlasanHtml(u, idx = 0) {
                     <div class="review-item__role">${chipPeran(u.peran)}</div>
                 </div>
             </div>
+            ${infoPenangananHtml(u.laporan)}
             <p class="review-item__text">${escapeHtml(u.isi)}</p>
             ${balasan.length ? `<div class="review-replies">${tampil}${sisa > 0 ? `<div class="review-replies-more">+${sisa} balasan lainnya</div>` : ''}</div>` : ''}
             <div class="review-item__date">${escapeHtml(relativeTime(u.waktu))}</div>
@@ -156,7 +173,7 @@ async function initLandingUlasan() {
         if (awal) dimuat = 0;
         let data;
         try {
-            data = await window.sipekaAPI.getUlasanPublik(HALAMAN, dimuat, filter ? filter.ambil() : {});
+            data = await window.sipekaAPI.getUlasanPublik(HALAMAN, dimuat, { ...(filter ? filter.ambil() : {}), hanya_unit: 1 });
         } catch (err) {
             if (nomor !== permintaan) return;
             if (awal) grid.innerHTML = '<p class="review-empty">Ulasan belum dapat dimuat. Silakan coba lagi nanti.</p>';
@@ -166,6 +183,7 @@ async function initLandingUlasan() {
         if (nomor !== permintaan) return;
 
         const r = data.ringkasan;
+        if (filter) filter.isiKategori(data.kategori);
         if (awal) {
             if (r.total_semua === 0) {
                 if (ringkasan) ringkasan.textContent = '';

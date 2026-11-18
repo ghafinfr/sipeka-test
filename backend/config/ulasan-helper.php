@@ -25,7 +25,8 @@ function peran_tampil(string $peran): string
 }
 
 // Balasan untuk sekumpulan ulasan -> [ id_ulasan => [ balasan, ... ] ]
-function muat_balasan(PDO $pdo, array $idUlasan, ?int $idUserSaya): array
+// $hanyaUnit = true: hanya balasan petugas unit (dipakai halaman depan)
+function muat_balasan(PDO $pdo, array $idUlasan, ?int $idUserSaya, bool $hanyaUnit = false): array
 {
     $hasil = [];
     if (!$idUlasan) return $hasil;
@@ -37,6 +38,7 @@ function muat_balasan(PDO $pdo, array $idUlasan, ?int $idUserSaya): array
            JOIN users u      ON u.id_user = b.id_user
            LEFT JOIN unit un ON un.id_unit = u.id_unit
           WHERE b.id_ulasan IN ($tanda)
+            " . ($hanyaUnit ? "AND u.role::text = 'unit'" : '') . "
           ORDER BY b.id_balasan"
     );
     $st->execute(array_values($idUlasan));

@@ -1,9 +1,11 @@
 <?php
 // GET /backend/api/ulasan/list.php
-// Semua ulasan (tampil = TRUE) beserta balasannya, dengan FILTER waktu. Dipakai:
-//   - halaman depan (tanpa login, hanya dibaca)
+// Ulasan MAHASISWA (tampil = TRUE) beserta balasannya, dengan FILTER. Dipakai:
+//   - halaman depan (tanpa login, hanya dibaca; kirim hanya_unit=1 agar hanya balasan unit yang tampil)
 //   - halaman Ulasan mahasiswa & unit (login -> "milik_saya" terisi untuk ulasan/balasan sendiri)
-// Nama mahasiswa disamarkan (mis. "Budi P."); petugas unit tampil sebagai nama unitnya.
+// Ulasan hanya berasal dari mahasiswa; unit hanya membalas. Nama mahasiswa disamarkan ("Budi P.").
+// Ulasan bisa terkait satu penanganan: yang dibagikan ke publik hanya kategori & unitnya
+// (judul laporan tidak pernah ditampilkan; nomor tiket hanya untuk pemilik ulasan).
 //
 // Parameter (semua opsional):
 //   limit=10  offset=0
@@ -12,14 +14,17 @@
 //   bulan  = YYYY-MM               (mode bulanan)
 //   tahun  = YYYY                  (mode tahunan)
 //   dari, sampai = YYYY-MM-DD      (mode rentang)
-//   peran  = semua (default) | mahasiswa | unit
+//   kategori = id kategori laporan yang diulas
 //   q      = kata kunci di isi ulasan
+//   hanya_unit = 1                 (hanya balasan petugas unit)
 // Tanggal dihitung menurut zona waktu Asia/Jakarta.
 //
 // Jawaban:
 // { "ringkasan": { "total": <sesuai filter>, "total_semua": <tanpa filter> },
 //   "ada_lagi": true|false,
+//   "kategori": [ {id_kategori, nama_kategori}, ... ],          // pilihan untuk filter
 //   "ulasan": [ { "id_ulasan", "nama", "peran", "isi", "waktu", "milik_saya",
+//                 "laporan": null | {kategori, unit, no_tiket|null},
 //                 "jumlah_balasan", "balasan": [ {id_balasan, nama, peran, isi, waktu, milik_saya} ] } ] }
 
 require __DIR__ . '/../../config/bootstrap.php';
@@ -35,7 +40,7 @@ $offset = max(0, (int)($_GET['offset'] ?? 0));
 $saya = isset($_SESSION['user']['id_user']) ? (int)$_SESSION['user']['id_user'] : null;
 
 $WAKTU = "(ul.created_at AT TIME ZONE 'Asia/Jakarta')";
-$where = ['ul.tampil'];
+$where = ['ul.tampil', "u.role::text = 'mahasiswa'"];   // ulasan hanya dari mahasiswa
 $param = [];
 
 function tanggal_valid(string $s): bool
@@ -80,11 +85,11 @@ switch ($mode) {
         json_out(['message' => 'mode tidak dikenal'], 400);
 }
 
-// ---------- filter peran & kata kunci ----------
-$peran = (string)($_GET['peran'] ?? 'semua');
-if ($peran === 'mahasiswa' || $peran === 'unit') {
-    $where[] = 'u.role::text = :peran';
-    $param[':peran'] = $peran;
+// ---------- filter kategori & kata kunci ----------
+$kategori = (int)($_GET['kategori'] ?? 0);
+if ($kategori > 0) {
+    $where[] = 'k.id_kategori = :kategori';
+    $param[':kategori'] = $kategori;
 }
 $q = trim((string)($_GET['q'] ?? ''));
 if ($q !== '') {
@@ -93,20 +98,31 @@ if ($q !== '') {
 }
 
 $dari_sql = 'FROM ulasan ul
-       JOIN users u      ON u.id_user = ul.id_user
-       LEFT JOIN unit un ON un.id_unit = u.id_unit
+       JOIN users u         ON u.id_user = ul.id_user
+       LEFT JOIN laporan l  ON l.id_laporan = ul.id_laporan
+       LEFT JOIN kategori k ON k.id_kategori = l.id_kategori
+       LEFT JOIN unit pun   ON pun.id_unit = k.id_unit
       WHERE ' . implode(' AND ', $where);
 
 // ---------- hitung ----------
 $st = $pdo->prepare("SELECT COUNT(*) $dari_sql");
 $st->execute($param);
 $total = (int)$st->fetchColumn();
-$totalSemua = (int)$pdo->query('SELECT COUNT(*) FROM ulasan WHERE tampil')->fetchColumn();
+$totalSemua = (int)$pdo->query(
+    "SELECT COUNT(*) FROM ulasan ul JOIN users u ON u.id_user = ul.id_user
+      WHERE ul.tampil AND u.role::text = 'mahasiswa'"
+)->fetchColumn();
+$daftarKategori = array_map(
+    fn($k) => ['id_kategori' => (int)$k['id_kategori'], 'nama_kategori' => $k['nama_kategori']],
+    $pdo->query('SELECT id_kategori, nama_kategori FROM kategori ORDER BY nama_kategori')->fetchAll()
+);
 
 // ---------- data ----------
 $st = $pdo->prepare(
     "SELECT ul.id_ulasan, ul.id_user, ul.isi_ulasan, ul.created_at,
-            u.nama, u.role::text AS peran, un.nama_unit
+            u.nama, u.role::text AS peran,
+            l.id_laporan AS lap_id, " . sql_no_tiket('l.') . " AS no_tiket,
+            k.nama_kategori, pun.nama_unit AS unit_penanganan
        $dari_sql
       ORDER BY ul.created_at DESC, ul.id_ulasan DESC
       LIMIT :lim OFFSET :off"
@@ -117,18 +133,25 @@ $st->bindValue(':off', $offset, PDO::PARAM_INT);
 $st->execute();
 $baris = $st->fetchAll();
 
-$balasan = muat_balasan($pdo, array_map(fn($r) => (int)$r['id_ulasan'], $baris), $saya);
+$hanyaUnit = ($_GET['hanya_unit'] ?? '') === '1';
+$balasan = muat_balasan($pdo, array_map(fn($r) => (int)$r['id_ulasan'], $baris), $saya, $hanyaUnit);
 
 $ulasan = array_map(function ($r) use ($balasan, $saya) {
     $id = (int)$r['id_ulasan'];
     $b = $balasan[$id] ?? [];
+    $milik = $saya !== null && (int)$r['id_user'] === $saya;
     return [
         'id_ulasan' => $id,
         'nama' => nama_tampil($r),
         'peran' => peran_tampil($r['peran']),
         'isi' => $r['isi_ulasan'],
         'waktu' => iso_waktu($r['created_at']),
-        'milik_saya' => $saya !== null && (int)$r['id_user'] === $saya,
+        'milik_saya' => $milik,
+        'laporan' => $r['lap_id'] ? [
+            'kategori' => $r['nama_kategori'],
+            'unit' => $r['unit_penanganan'],
+            'no_tiket' => $milik ? $r['no_tiket'] : null,     // tiket hanya terlihat oleh pemilik
+        ] : null,
         'jumlah_balasan' => count($b),
         'balasan' => $b,
     ];
@@ -136,6 +159,7 @@ $ulasan = array_map(function ($r) use ($balasan, $saya) {
 
 json_out([
     'ringkasan' => ['total' => $total, 'total_semua' => $totalSemua],
+    'kategori' => $daftarKategori,
     'ada_lagi' => ($offset + count($ulasan)) < $total,
     'ulasan' => $ulasan,
 ]);

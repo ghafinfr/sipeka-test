@@ -378,3 +378,16 @@
   cursor: pointer;
 }
 .review-item__hapus:hover { text-decoration: underline; }
+
+/* ---------- Konteks penanganan pada kartu ulasan ---------- */
+.review-item__laporan {
+  margin: 0.15rem 0 0.4rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.review-item__laporan strong { color: var(--primary-navy); }

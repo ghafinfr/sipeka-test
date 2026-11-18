@@ -3,10 +3,12 @@
  * Halaman : content/mahasiswa/ulasan.php, content/unit/{unit}/ulasan.php
  *           (isi halaman ada di includes/ulasan-content.php)
  * Fungsi  : initUlasanPage()
- * Data    : GET ulasan/list.php (SEMUA ulasan + balasan, dengan filter waktu),
- *           POST ulasan/saya.php (tulis / hapus ulasan sendiri),
+ * Data    : GET ulasan/list.php (SEMUA ulasan mahasiswa + balasan, dengan filter waktu & kategori),
+ *           GET ulasan/laporan-saya.php (penanganan selesai milik sendiri, untuk dipilih),
+ *           POST ulasan/saya.php (tulis / hapus ulasan sendiri; hanya mahasiswa),
  *           POST ulasan/balas.php (balas / hapus balasan sendiri)
- * Ulasan berupa komentar (tanpa bintang); satu akun boleh menulis banyak ulasan dan banyak balasan.
+ * Ulasan berupa komentar (tanpa bintang), ditulis HANYA oleh mahasiswa dan boleh lebih dari satu;
+ * petugas unit hanya membalas. Balasan boleh banyak.
  * Memakai chipPeran() & buatFilterUlasan() dari pages/landing-ulasan.js.
  */
 
@@ -21,6 +23,13 @@ async function initUlasanPage() {
     const ringkasan = document.getElementById('ulasanRingkasan');
     const btnMore = document.getElementById('ulasanMore');
     const wadahFilter = document.getElementById('ulasanFilter');
+    const pilihLaporan = document.getElementById('ulasanLaporan');
+    const infoLaporan = document.getElementById('ulasanLaporanInfo');
+    const catatanUnit = document.getElementById('ulasanCatatanUnit');
+
+    // Halaman di bawah /content/unit/ = petugas unit: tidak bisa menulis ulasan, hanya membalas.
+    // (Server tetap menolak: ulasan/saya.php memeriksa peran.)
+    const adalahUnit = window.location.pathname.includes('/content/unit/');
 
     const HALAMAN = 10;
     let dimuat = 0;           // jumlah ulasan yang sedang tampil
@@ -29,7 +38,26 @@ async function initUlasanPage() {
 
     const filter = buatFilterUlasan(wadahFilter, () => muatDaftar());
 
-    // ================= tulis ulasan =================
+    // ================= tulis ulasan (mahasiswa) =================
+    async function muatPenanganan() {
+        try {
+            const { laporan } = await window.sipekaAPI.getLaporanUlasan();
+            pilihLaporan.innerHTML = '<option value="">Ulasan umum (tidak terkait penanganan tertentu)</option>' +
+                laporan.map((l) => {
+                    const diulas = l.jumlah_ulasan ? ` — sudah diulas ${l.jumlah_ulasan}×` : '';
+                    return `<option value="${l.id_laporan}">${escapeHtml(l.no_tiket)} · ${escapeHtml(l.judul)} (${escapeHtml(l.kategori)})${diulas}</option>`;
+                }).join('');
+            infoLaporan.textContent = laporan.length
+                ? 'Pilih penanganan yang sudah selesai, atau biarkan sebagai ulasan umum.'
+                : 'Belum ada penanganan yang selesai. Penanganan yang selesai akan muncul di sini.';
+        } catch (err) {
+            if (infoLaporan) {
+                infoLaporan.textContent = 'Daftar penanganan belum dapat dimuat.';
+            }
+            console.error('Gagal memuat daftar penanganan untuk ulasan:', err);
+        }
+    }
+
     function periksa() {
         hitung.textContent = `${isi.value.length}/500`;
         btnKirim.disabled = isi.value.trim().length < 3;
@@ -40,9 +68,11 @@ async function initUlasanPage() {
         e.preventDefault();
         btnKirim.disabled = true;
         try {
-            const hasil = await window.sipekaAPI.tulisUlasan(isi.value.trim());
+            const hasil = await window.sipekaAPI.tulisUlasan(isi.value.trim(), pilihLaporan.value || null);
             showToast(hasil.message || 'Ulasan terkirim.', 'success');
             isi.value = '';
+            pilihLaporan.value = '';
+            muatPenanganan();                  // perbarui penanda "sudah diulas"
             filter.reset(false);               // pastikan ulasan baru terlihat (tidak tersaring)
             await muatDaftar();
         } catch (err) {
@@ -76,6 +106,7 @@ async function initUlasanPage() {
                     <div class="review-item__role">${chipPeran(u.peran)}</div>
                 </div>
             </div>
+            ${infoPenangananHtml(u.laporan)}
             <p class="review-item__text">${escapeHtml(u.isi)}</p>
             ${u.balasan.length ? `<div class="review-replies">${u.balasan.map(balasanHtml).join('')}</div>` : ''}
             <div class="mt-2 flex items-center justify-between gap-3">
@@ -113,11 +144,12 @@ async function initUlasanPage() {
         }
         if (nomor !== permintaan) return;
 
+        filter.isiKategori(data.kategori);
         const r = data.ringkasan;
         ringkasan.textContent = r.total_semua ? teksJumlahUlasan(r, filter.aktif()) : '';
         if (r.total === 0) {
             daftar.innerHTML = r.total_semua === 0
-                ? '<p class="review-empty">Belum ada ulasan. Jadilah yang pertama!</p>'
+                ? `<p class="review-empty">${adalahUnit ? 'Belum ada ulasan dari mahasiswa.' : 'Belum ada ulasan. Jadilah yang pertama!'}</p>`
                 : '<p class="review-empty">Tidak ada ulasan untuk filter ini.</p>';
             btnMore.hidden = true;
             dimuat = 0;
@@ -191,6 +223,12 @@ async function initUlasanPage() {
         if (e.detail.items.some((n) => n.jenis === 'balasan_ulasan')) muatDaftar();
     });
 
-    periksa();
+    if (adalahUnit) {
+        form.classList.add('hidden');
+        if (catatanUnit) catatanUnit.classList.remove('hidden');
+    } else {
+        periksa();
+        muatPenanganan();
+    }
     await muatDaftar();
 }

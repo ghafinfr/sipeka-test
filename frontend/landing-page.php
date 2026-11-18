@@ -103,8 +103,8 @@
             <div class="review-more">
                 <button type="button" class="landing-btn landing-btn--small landing-btn--ghost" id="reviewMore" hidden>Tampilkan lebih banyak</button>
             </div>
-            <!-- Halaman depan hanya menampilkan hasil. Menulis ulasan/membalas dilakukan setelah masuk. -->
-            <p class="review-cta">Ingin menulis ulasan atau membalas? <a href="content/auth/login.php" data-auth="login">Masuk</a> lalu buka menu <strong>Ulasan</strong>.</p>
+            <!-- Halaman depan hanya menampilkan ulasan mahasiswa + balasan unit. Menulis ulasan hanya oleh mahasiswa setelah masuk. -->
+            <p class="review-cta">Pernah mengadukan sesuatu lewat SIPEKA? <a href="content/auth/login.php" data-auth="login">Masuk sebagai mahasiswa</a> lalu buka menu <strong>Ulasan</strong> untuk menilai penanganannya.</p>
         </section>
     </main>
 
